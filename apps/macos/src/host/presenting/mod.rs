@@ -11,11 +11,16 @@ pub(super) use key_hint::KeyHintState;
 pub(super) use notice::Notice;
 pub use translation_job::TranslationJob;
 
+use super::Host;
 use super::cloud::cloud_candidate;
-use super::*;
-use qingjian_core::TraditionalVariant;
+use super::session::Session;
+use crate::candidates::{Frame, Preedit, Row};
+use objc2::MainThreadMarker;
+use objc2_foundation::NSRect;
 use qingjian_core::candidate::arrows::Focus;
+use qingjian_core::{Candidate, CandidateKind, Cell, Language, TraditionalVariant};
 use qingjian_platform::candidate_menu::{self, CandidateAction};
+use qingjian_platform::{HighlightKeys, LayoutMode};
 
 impl Host {
     /// 右键菜单：视图里第 `offset` 格的候选能做哪几件事；那格没有候选给空。
@@ -84,8 +89,16 @@ impl Host {
     }
 
     /// 开始一次翻译：记下选区，窗口先显示「翻译中…」。调用方已发出请求。
-    pub fn begin_translation(&mut self, range: objc2_foundation::NSRange) {
+    pub fn begin_translation(
+        &mut self,
+        range: objc2_foundation::NSRange,
+        sequence: u64,
+        language: Language,
+    ) {
+        self.speech.stop();
         self.translation = Some(TranslationJob {
+            sequence,
+            language,
             range,
             result: None,
         });
@@ -117,6 +130,14 @@ impl Host {
             self.cancel_prediction();
             self.reset_session(None, Vec::new());
             self.window.hide();
+        }
+    }
+
+    /// 放弃时连同朗读一起停止；接受译文只收窗，让已开始的朗读继续。
+    pub fn cancel_translation(&mut self) {
+        if self.translation.is_some() {
+            self.speech.stop();
+            self.end_translation();
         }
     }
 

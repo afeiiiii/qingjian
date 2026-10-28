@@ -20,16 +20,12 @@ mod settings;
 use std::cell::RefCell;
 use std::path::PathBuf;
 
-use objc2::MainThreadMarker;
 use objc2_app_kit::{NSPasteboard, NSPasteboardTypeString};
 use objc2_foundation::{NSProcessInfo, NSRect, NSString};
 use qingjian_core::{
-    Candidate, CandidateKind, Cell, CloudWord, EmojiTable, Engine, FuzzyRules, Language, ModeKeys,
-    NoGlossFiller, NoInputLogger, NoPredictor, NoTranslator, Prediction,
+    Engine, FuzzyRules, Language, ModeKeys, NoGlossFiller, NoInputLogger, NoPredictor, NoTranslator,
 };
-use qingjian_dictionary::{Dictionary, WordList};
-use qingjian_learning::{FrequencyLearner, InputLog, PanelUsage, UsageStats, VocabularyBook};
-use qingjian_lm::BigramModel;
+use qingjian_learning::InputLog;
 use qingjian_platform::extra_dictionaries;
 use qingjian_platform::logs::CompositionTrace;
 use qingjian_platform::{
@@ -39,14 +35,11 @@ use qingjian_platform::{
     Scheme, ShortcutConfig, UpdateChannel,
 };
 use qingjian_predict::{
-    API_USAGE_FILE, CloudGlossFiller, CloudPredictor, ConnectionTest, PredictConfig, PredictError,
+    API_USAGE_FILE, CloudGlossFiller, CloudPredictor, ConnectionTest, PredictConfig,
 };
-use qingjian_translate::{Glossary, LayeredTranslator, LevelTable, PersonalGlossary};
 
-use crate::app::BundleInfo;
-use crate::app::{Settings, logging, paths};
-use crate::candidates::{CandidateWindow, Frame, Preedit, Row};
-use crate::error::HostError;
+use crate::app::{Settings, Speech, logging, paths};
+use crate::candidates::{CandidateWindow, Preedit};
 use crate::menubar::{InputMenu, MenuAction, ModeIndicator};
 use crate::preferences::{PreferencesWindow, Setting, SettingValue, UpdateStatus};
 
@@ -78,6 +71,9 @@ pub struct Host {
 
     /// 配置文件的当前值与修改时间。
     pub settings: Settings,
+
+    /// 快捷键选区翻译成功后朗读译文。
+    pub speech: Speech,
 
     /// 配置文件监视定时器，激活期间跑。
     pub watch: ConfigWatch,
@@ -133,7 +129,7 @@ pub struct Host {
     /// 版本号与构建标识，诊断信息里用。
     version: String,
 
-    /// 见 [`BundleInfo::build`]。
+    /// 见 [`crate::app::BundleInfo::build`]。
     build: String,
 
     /// 每页候选数（配置 `[general] page_size`，已夹到 1–9）。

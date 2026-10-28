@@ -5,6 +5,8 @@ pub mod input_source;
 pub mod logging;
 pub mod paths;
 mod settings;
+mod speech;
 
 pub use bundle::BundleInfo;
 pub use settings::Settings;
+pub use speech::Speech;

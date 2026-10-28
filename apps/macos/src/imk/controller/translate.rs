@@ -1,6 +1,9 @@
 //! 翻译选中文字与译词键。
 
-use super::*;
+use super::{MAX_TRANSLATE_CHARS, QingjianInputController};
+use crate::host;
+use crate::imk::{TextClient, secure_input};
+use qingjian_core::engine::translation_target;
 
 impl QingjianInputController {
     /// Option+数字：上屏当前页第几个候选的译文（学习和拼音消耗与选那个候选一样）。
@@ -31,14 +34,18 @@ impl QingjianInputController {
         let anchor = client.caret_rect();
         let sent = host::with(|h| {
             h.anchor = anchor;
-            h.engine.request_translation(&text).is_some()
+            let language = translation_target(&text, h.engine.learning_language());
+            let Some(sequence) = h.engine.request_translation(&text) else {
+                return false;
+            };
+            h.begin_translation(range, sequence, language);
+            true
         })
         .unwrap_or(false);
         if !sent {
             return false;
         }
         tracing::debug!(chars = text.chars().count(), "翻译选中文字");
-        host::with(|h| h.begin_translation(range));
         true
     }
 
@@ -53,18 +60,18 @@ impl QingjianInputController {
             36 | 76 | 49 | 18 => {
                 if let Some(result) = job.result {
                     tracing::debug!("接受译文");
-                    client.replace_range(&result, job.range);
                     host::with(|h| h.end_translation());
+                    client.replace_range(&result, job.range);
                 }
                 true
             }
             // Esc：放弃
             53 => {
-                host::with(|h| h.end_translation());
+                host::with(|h| h.cancel_translation());
                 true
             }
             _ => {
-                host::with(|h| h.end_translation());
+                host::with(|h| h.cancel_translation());
                 false
             }
         }

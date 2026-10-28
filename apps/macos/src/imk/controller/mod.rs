@@ -98,6 +98,7 @@ define_class!(
                 }
                 self.end_trace("commit-request", true);
                 host::with(|h| {
+                    h.cancel_translation();
                     h.cancel_prediction();
                     h.window.hide();
                 });
@@ -172,6 +173,8 @@ define_class!(
                 self.end_trace("focus-out", true);
                 // 切换输入源时无论如何都收掉候选框，不能留一个孤儿窗口在屏幕上
                 host::with(|h| {
+                    h.cancel_translation();
+                    h.speech.stop();
                     h.cancel_prediction();
                     h.window.hide();
                     h.indicator.deactivate();

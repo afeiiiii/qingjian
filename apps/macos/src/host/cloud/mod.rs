@@ -6,7 +6,10 @@ mod test_monitor;
 pub(super) use predict_monitor::PredictMonitor;
 pub(super) use test_monitor::CloudTestMonitor;
 
-use super::*;
+use super::Host;
+use crate::app::paths;
+use qingjian_core::{Candidate, CandidateKind, CloudWord, Prediction};
+use qingjian_predict::{API_USAGE_FILE, ConnectionTest, PredictError};
 
 impl Host {
     /// 清空输入日志文件；开着的话重新打开继续记。
@@ -91,7 +94,12 @@ impl Host {
             return;
         };
         self.apply_prediction(prediction);
-        if self.candidate_translation.is_none() {
+        if self.candidate_translation.is_none()
+            && self
+                .translation
+                .as_ref()
+                .is_none_or(|job| job.result.is_some())
+        {
             self.monitor.stop();
         }
     }
@@ -125,11 +133,16 @@ impl Host {
         }
         // 翻译选中文字：译文作为唯一候选摆进窗口，等用户回车替换或 Esc 放弃
         if let Some(job) = self.translation.as_mut() {
+            if prediction.sequence != job.sequence || job.result.is_some() {
+                return;
+            }
             match prediction.sentence {
                 Some(text) => {
+                    let language = job.language;
                     job.result = Some(text.clone());
-                    self.reset_session(None, vec![cloud_candidate(text)]);
+                    self.reset_session(None, vec![cloud_candidate(text.clone())]);
                     self.render();
+                    self.speech.speak(&text, language);
                 }
                 None => {
                     tracing::info!("云端没有给出译文");
