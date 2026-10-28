@@ -1,4 +1,4 @@
-//! 选区译文的系统朗读；合成器延迟创建，始终只播放最新一次翻译。
+//! 候选与选区译文共用的系统朗读封装；每个实例只播放最新一次请求。
 
 use objc2::MainThreadMarker;
 use objc2::rc::Retained;

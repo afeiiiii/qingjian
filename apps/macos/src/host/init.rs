@@ -16,6 +16,7 @@ use qingjian_platform::{
 use qingjian_predict::PredictConfig;
 use qingjian_translate::{Glossary, LayeredTranslator, LevelTable, PersonalGlossary};
 
+use super::candidate_speech::CandidateSpeech;
 use super::cloud::{CloudTestMonitor, PredictMonitor};
 use super::config::ConfigWatch;
 use super::dictionaries::DictionaryInfo;
@@ -167,6 +168,7 @@ pub fn init(mtm: MainThreadMarker, info: &BundleInfo) -> Result<(), HostError> {
             preferences,
             settings,
             speech: Speech::new(mtm),
+            candidate_speech: CandidateSpeech::new(mtm),
             watch,
             mode_switch,
             osd,

@@ -6,6 +6,7 @@
 //! 设置窗口、手改文件被监视到，全都走它；三个入口都只写 `config.toml`，不各存一套状态。
 
 mod aux_code;
+mod candidate_speech;
 mod cloud;
 mod config;
 mod diagnostics;
@@ -43,6 +44,7 @@ use crate::candidates::{CandidateWindow, Preedit};
 use crate::menubar::{InputMenu, MenuAction, ModeIndicator};
 use crate::preferences::{PreferencesWindow, Setting, SettingValue, UpdateStatus};
 
+use candidate_speech::CandidateSpeech;
 use cloud::{CloudTestMonitor, PredictMonitor};
 use config::{ConfigWatch, TextReplacement};
 pub use dictionaries::DictionaryInfo;
@@ -74,6 +76,9 @@ pub struct Host {
 
     /// 快捷键选区翻译成功后朗读译文。
     pub speech: Speech,
+
+    /// 停键后朗读第一条候选的英文释义。
+    pub candidate_speech: CandidateSpeech,
 
     /// 配置文件监视定时器，激活期间跑。
     pub watch: ConfigWatch,

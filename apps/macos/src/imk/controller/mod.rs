@@ -99,6 +99,7 @@ define_class!(
                 self.end_trace("commit-request", true);
                 host::with(|h| {
                     h.cancel_translation();
+                    h.candidate_speech.cancel();
                     h.cancel_prediction();
                     h.window.hide();
                 });
@@ -174,6 +175,7 @@ define_class!(
                 // 切换输入源时无论如何都收掉候选框，不能留一个孤儿窗口在屏幕上
                 host::with(|h| {
                     h.cancel_translation();
+                    h.candidate_speech.cancel();
                     h.speech.stop();
                     h.cancel_prediction();
                     h.window.hide();

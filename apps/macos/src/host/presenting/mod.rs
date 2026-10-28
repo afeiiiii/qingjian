@@ -95,6 +95,7 @@ impl Host {
         sequence: u64,
         language: Language,
     ) {
+        self.candidate_speech.cancel();
         self.speech.stop();
         self.translation = Some(TranslationJob {
             sequence,
@@ -158,6 +159,9 @@ impl Host {
 
     /// 新一轮候选：每页格数取配置与窗口能画的行数中较小者，云端槽位数取配置。
     pub fn reset_session(&mut self, preedit: Option<Preedit>, candidates: Vec<Candidate>) {
+        if candidates.is_empty() && self.engine.composition().is_empty() {
+            self.candidate_speech.cancel();
+        }
         self.status = None;
         let page_size = self.page_size.min(self.window.max_rows()).max(1);
         self.session
@@ -190,6 +194,7 @@ impl Host {
     /// 按会话状态画候选窗口。候选为空且没有 preedit 时收窗。
     pub fn render(&mut self) {
         if self.engine.symbol_panel().is_some() {
+            self.candidate_speech.cancel();
             self.render_panel();
             return;
         }
@@ -245,6 +250,7 @@ impl Host {
             .then(|| self.session.preedit.clone())
             .flatten();
         if rows.is_empty() && self.session.preedit.is_none() {
+            self.candidate_speech.cancel();
             self.window.hide();
             return;
         }
@@ -275,6 +281,7 @@ impl Host {
             keyboard,
         };
         self.window.show(frame, self.anchor);
+        self.update_candidate_speech();
     }
 
     /// 给候选窗口主题显示的输入状态：中英跟菜单栏一致（Caps Lock 或单击 Shift），其余看配置；英文模式标点是半角。

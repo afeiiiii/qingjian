@@ -460,7 +460,9 @@ Windows Server 自绘候选窗（GDI）按 `Frame.columns` / `column_ems` 画矩
 
 IMK 输入法，源码按 `app / host / imk / candidates / menubar / preferences` 分目录。
 
-选区翻译成功后由 `app/speech.rs` 用 AVFAudio 的 `AVSpeechSynthesizer` 按目标语言朗读；合成器延迟创建、主线程控制，不阻塞候选显示。`TranslationJob` 保存请求序号与目标语言，只对本次首次成功结果朗读；接受后继续播放，放弃、失焦或下次翻译停止。普通候选与生词本翻译不触发。
+选区翻译成功后由 `app/speech.rs` 用 AVFAudio 的 `AVSpeechSynthesizer` 按目标语言朗读；合成器延迟创建、主线程控制，不阻塞候选显示。`TranslationJob` 保存请求序号与目标语言，只对本次首次成功结果朗读；接受后继续播放，放弃、失焦或下次翻译停止。生词本翻译不触发。
+
+`host/candidate_speech/` 为可见首选的第一条英文释义安排 0.4 秒单次定时器，直接读取候选上的 `Sense.text`（不含词性），不额外调用翻译接口。按键变化推迟待播，同一译文在连续显示期间只读一次；无译文、上屏、放弃或失焦时取消。选区翻译会清掉候选待播；两者分别持有延迟创建的系统合成器，避免候选收窗打断已接受的选区译文。
 
 **在 Linux 上也能对它做类型检查**（不链接、不产出可执行文件，但编译错误与 clippy 都查得到）。
 `qingjian-macos` 在非 Apple 平台上是硬 `compile_error!`、提交钩子也排除它，于是在 Linux 上改它等于盲改。办法是对 darwin 目标 check，
