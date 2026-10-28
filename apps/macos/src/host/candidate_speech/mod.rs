@@ -1,4 +1,4 @@
-//! 首选英文译文的防抖与朗读；独立持有语音，取消候选不会打断已接受的选区译文。
+//! 候选英文译文的防抖与选词朗读；独立持有语音，取消候选不会打断已接受的选区译文。
 
 mod state;
 mod ticker;
@@ -6,7 +6,7 @@ mod ticker;
 use objc2::rc::Retained;
 use objc2::{MainThreadMarker, sel};
 use objc2_foundation::NSTimer;
-use qingjian_core::{Cell, Language};
+use qingjian_core::{Candidate, Cell, Language};
 
 use self::state::State;
 use self::ticker::CandidateSpeechTicker;
@@ -73,6 +73,42 @@ impl CandidateSpeech {
 }
 
 impl Host {
+    /// 上屏前留住所选候选的英文；已读过的首选转交给上屏朗读，收窗时不截断或重播。
+    pub fn prepare_candidate_commit(&mut self, candidate: &Candidate) -> Option<String> {
+        if self.engine.is_private() || secure_input::enabled() {
+            self.candidate_speech.cancel();
+            return None;
+        }
+        let text = candidate
+            .translation
+            .as_ref()
+            .filter(|translation| translation.language == Language::English)
+            .and_then(|translation| translation.senses().first())
+            .map(|sense| sense.text.trim())
+            .filter(|text| !text.is_empty());
+        if let Some(text) = text
+            && self.candidate_speech.state.has_spoken(text)
+        {
+            self.speech.stop();
+            std::mem::swap(&mut self.speech, &mut self.candidate_speech.speech);
+            self.candidate_speech.cancel();
+            return None;
+        }
+        self.candidate_speech.cancel();
+        text.map(str::to_owned)
+    }
+
+    /// 候选上屏并刷新完毕后再读，避免收窗逻辑取消播放；所选词优先于剩余拼音的首选。
+    pub fn read_committed_candidate(&mut self, text: Option<&str>) {
+        self.candidate_speech.cancel();
+        if let Some(text) = text
+            && !self.engine.is_private()
+            && !secure_input::enabled()
+        {
+            self.speech.speak(text, Language::English);
+        }
+    }
+
     fn first_candidate_english(&self) -> Option<String> {
         if self.translation.is_some()
             || self.notice.is_some()

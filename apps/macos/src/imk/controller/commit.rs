@@ -1,6 +1,8 @@
 //! 上屏：高亮候选、指定候选、拼音原样。
 
-use super::*;
+use super::QingjianInputController;
+use crate::host;
+use crate::imk::TextClient;
 
 impl QingjianInputController {
     pub(super) fn commit_highlighted(&self, client: TextClient<'_>) -> bool {
@@ -24,7 +26,10 @@ impl QingjianInputController {
             }
             return self.commit_raw(client);
         };
-        let Some(text) = host::with(|h| h.engine.commit(&candidate)) else {
+        let Some((text, translation)) = host::with(|h| {
+            let translation = h.prepare_candidate_commit(&candidate);
+            (h.engine.commit(&candidate), translation)
+        }) else {
             return false;
         };
         // 没选完一段拼音时词留在组句里（空串），随拼音一起显示
@@ -33,6 +38,7 @@ impl QingjianInputController {
             client.insert_text(&text);
         }
         self.refresh(client);
+        host::with(|h| h.read_committed_candidate(translation.as_deref()));
         true
     }
 

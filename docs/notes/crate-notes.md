@@ -464,6 +464,8 @@ IMK 输入法，源码按 `app / host / imk / candidates / menubar / preferences
 
 `host/candidate_speech/` 为可见首选的第一条英文释义安排 0.4 秒单次定时器，直接读取候选上的 `Sense.text`（不含词性），不额外调用翻译接口。按键变化推迟待播，同一译文在连续显示期间只读一次；无译文、上屏、放弃或失焦时取消。选区翻译会清掉候选待播；两者分别持有延迟创建的系统合成器，避免候选收窗打断已接受的选区译文。
 
+选词上屏走 IMK 的统一 `commit_index`：在 `Engine::commit` 前保存所选候选的英文，刷新上屏状态后由 `Host::read_committed_candidate` 朗读，数字键、空格与鼠标共用。首选若已经读过，交换两路合成器的所有权，让原来的播放越过收窗继续完成，避免重复朗读；选择其他候选则取消首选待播，立即读所选英文。
+
 **在 Linux 上也能对它做类型检查**（不链接、不产出可执行文件，但编译错误与 clippy 都查得到）。
 `qingjian-macos` 在非 Apple 平台上是硬 `compile_error!`、提交钩子也排除它，于是在 Linux 上改它等于盲改。办法是对 darwin 目标 check，
 唯一的拦路虎是 `onig_sys`（candle → tokenizers 带进来的 C 库）要编 C，给它一个假的 pkg-config 条目让它改走「系统库」：

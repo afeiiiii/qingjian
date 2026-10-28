@@ -34,6 +34,10 @@ impl State {
         self.text().filter(|_| !self.spoken)
     }
 
+    pub fn has_spoken(&self, text: &str) -> bool {
+        self.text() == Some(text) && self.spoken
+    }
+
     pub fn take(&mut self) -> Option<String> {
         let text = self.pending()?.to_owned();
         self.spoken = true;
@@ -85,5 +89,17 @@ mod tests {
         state.update(None, "");
         state.update(Some("input".into()), "shuru");
         assert_eq!(state.take().as_deref(), Some("input"));
+    }
+
+    #[test]
+    fn commit_only_deduplicates_the_word_that_was_actually_read() {
+        let mut state = State::default();
+        state.update(Some("I".into()), "wo");
+        assert!(!state.has_spoken("I"));
+        state.take();
+        assert!(state.has_spoken("I"));
+        assert!(!state.has_spoken("input"));
+        state.update(None, "");
+        assert!(!state.has_spoken("I"));
     }
 }
